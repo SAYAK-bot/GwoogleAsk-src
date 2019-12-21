@@ -7,8 +7,6 @@ namespace EchoBot
 {
     public class ConversationData
     {
-
-
         public bool PromptedUserForName { get; set; }
         public string Email { get; set; }
     }

@@ -6,17 +6,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.Dialogs.Choices;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.BotBuilderSamples.Bots
 {
-    public class EchoBot : ActivityHandler
+    public class EchoBot<T> : ActivityHandler where T : Dialog
     {
         protected readonly Dialog Dialog;
         protected readonly BotState ConversationState;
         protected readonly BotState UserState;
         protected readonly ILogger Logger;
 
-        public DialogBot(ConversationState conversationState, UserState userState, T dialog, ILogger<DialogBot<T>> logger)
+        public EchoBot(ConversationState conversationState, UserState userState, T dialog, ILogger<EchoBot<T>> logger)
         {
             ConversationState = conversationState;
             UserState = userState;

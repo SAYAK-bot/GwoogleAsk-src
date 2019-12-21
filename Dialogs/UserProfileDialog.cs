@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
-
+using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.Dialogs.Choices;
+using Microsoft.Bot.Connector;
+using Microsoft.Bot.Schema;
 namespace EchoBot.Dialogs
 {
 
@@ -31,7 +37,7 @@ namespace EchoBot.Dialogs
 
             // Add named dialogs to the DialogSet. These names are saved in the dialog state.
             AddDialog(new WaterfallDialog(nameof(WaterfallDialog), waterfallSteps));
-            AddDialog(new TextPrompt(nameof(TextPrompt)));
+            AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
@@ -46,47 +52,82 @@ namespace EchoBot.Dialogs
 
         private static async Task<DialogTurnResult> DomainStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-            // Running a prompt here means the next WaterfallStep will be run when the user's response is received.
-            return await stepContext.PromptAsync(nameof(ChoicePrompt),
-                new PromptOptions
-                {
-                    Prompt = MessageFactory.Text("Please enter domain of information."),
-                    Choices = ChoiceFactory.ToChoices(new List<string> { "Guidewire", "Java", "Python" }),
-                }, cancellationToken);
+            try
+            {
+                // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
+                // Running a prompt here means the next WaterfallStep will be run when the user's response is received.
+                return await stepContext.PromptAsync(nameof(ChoicePrompt),
+                    new PromptOptions
+                    {
+                        Prompt = MessageFactory.Text("Please enter domain of information."),
+                        Choices = ChoiceFactory.ToChoices(new List<string> { "Guidewire", "Java", "Python" }),
+                    }, cancellationToken);
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
         }
 
         private static async Task<DialogTurnResult> NameStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            stepContext.Values["domain"] = ((FoundChoice)stepContext.Result).Value;
+            try
+            {
+                stepContext.Values["domain"] = ((FoundChoice)stepContext.Result).Value;
 
-            return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your name.") }, cancellationToken);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your name.") }, cancellationToken);
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
         }
 
         private async Task<DialogTurnResult> NameConfirmStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            stepContext.Values["name"] = (string)stepContext.Result;
+            try
+            {
+                stepContext.Values["name"] = (string)stepContext.Result;
 
-            // We can send messages to the user at any point in the WaterfallStep.
-            await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Thanks {stepContext.Result}."), cancellationToken);
+                // We can send messages to the user at any point in the WaterfallStep.
+                await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Thanks {stepContext.Result}."), cancellationToken);
 
-            // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-            return await stepContext.PromptAsync(nameof(ConfirmPrompt), new PromptOptions { Prompt = MessageFactory.Text("What information are you looking for?") }, cancellationToken);
-        }
+                // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("What information are you looking for?") }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+          }
 
         private static async Task<DialogTurnResult> QuestionStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            stepContext.Values["Question"] = ((FoundChoice)stepContext.Result).Value;
+            try
+            {
+                stepContext.Values["Question"] = ((String)stepContext.Result);
 
-            return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your mail id.") }, cancellationToken);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your mail id.") }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         private static async Task<DialogTurnResult> MailStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            stepContext.Values["Mail"] = ((FoundChoice)stepContext.Result).Value;
+            try
+            {
+                stepContext.Values["Mail"] = ((String)stepContext.Result); ;
 
-            return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text($"Thank you {stepContext.Values["age"]} We will get back to you") }, cancellationToken);
-        }
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text($"Thank you {stepContext.Values["name"]} We will get back to you") }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+          }
 
 
 
