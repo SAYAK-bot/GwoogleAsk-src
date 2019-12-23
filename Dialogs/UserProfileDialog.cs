@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
@@ -189,13 +190,33 @@ namespace EchoBot.Dialogs
         {
             try
             {
-
                 MailAddress fromAddress = new MailAddress("sayak.biswas@hotmail.com", "Gwoogle");
                 MailAddress toAddress = new MailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
                 const string fromPassword = "sayakSICK";
-                string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html");
+                string path = Path.Combine(Environment.CurrentDirectory, "emailTemplate.html");
+                //string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html").Trim();
+                string body = System.IO.File.ReadAllText(path).Trim();
+
+                //var path = Path.Combine(Directory.GetCurrentDirectory(), "\\emailTemplate.html");
+                //string body = System.IO.File.ReadAllText(path);
                 //string format
-                body = body.Replace("&&Customer", stepContext.Values["name"].ToString()).Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).Replace("&&Lorem", LinkUrlsList[0].ToString());
+                body = body.Replace("&&Consumer", stepContext.Values["name"].ToString()).Replace("$$$PlaceHolder_for_Customs_msg","Custom msg goes here");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
+                string links = string.Empty;
+                if (LinkUrlsList.Count>0)
+                {
+                    links = "<ul>";
+
+                    foreach (var item in LinkUrlsList)
+                    {
+                        links = links+"<li>"+ "<a href="+item+">" + item + "</a>"+"</li>";
+                    }
+                    links += "</ul>";
+                }
+                else
+                {
+                    links = "sorry no relevant links foun";
+                }
+                body = body.Replace("&&Lorem",links);
                 const string subject = "Reply from Gwoogle";//email subject
                 SmtpClient smtpClient = new SmtpClient()
                 {
