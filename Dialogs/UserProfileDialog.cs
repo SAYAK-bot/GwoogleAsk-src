@@ -1,20 +1,15 @@
-﻿using System;
+﻿using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.Dialogs.Choices;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Mail;
-using System.Net.Mime;
-using System.Text;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Bot.Builder;
-using Microsoft.Bot.Builder.AI.Luis;
-using Microsoft.Bot.Builder.Dialogs;
-using Microsoft.Bot.Builder.Dialogs.Choices;
-using Microsoft.Bot.Connector;
-using Microsoft.Bot.Schema;
 namespace EchoBot.Dialogs
 {
 
@@ -193,9 +188,19 @@ namespace EchoBot.Dialogs
                 MailAddress fromAddress = new MailAddress("sayak.biswas@hotmail.com", "Gwoogle");
                 MailAddress toAddress = new MailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
                 const string fromPassword = "sayakSICK";
-                string path = Path.Combine(Environment.CurrentDirectory, "emailTemplate.html");
+
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = "EchoBot.emailTemplate.html";
+                string result;
+                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                     result = reader.ReadToEnd();
+                }
+
+               // string path = Path.Combine(, "emailTemplate.html");
+                string body = result;
                 //string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html").Trim();
-                string body = System.IO.File.ReadAllText(path).Trim();
 
                 //var path = Path.Combine(Directory.GetCurrentDirectory(), "\\emailTemplate.html");
                 //string body = System.IO.File.ReadAllText(path);
