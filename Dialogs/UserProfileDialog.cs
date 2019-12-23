@@ -189,23 +189,23 @@ namespace EchoBot.Dialogs
                 MailAddress toAddress = new MailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
                 const string fromPassword = "sayakSICK";
 
-                var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = "EchoBot.emailTemplateNew.html";
-                string result;
-                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                     result = reader.ReadToEnd();
-                }
+                //var assembly = Assembly.GetExecutingAssembly();
+                //var resourceName = "EchoBot.emailTemplateNew.html";
+                //string result;
+                //using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                //using (StreamReader reader = new StreamReader(stream))
+                //{
+                //     result = reader.ReadToEnd();
+                //}
 
                // string path = Path.Combine(, "emailTemplate.html");
-                string body = result;
+                string body = "test";
                 //string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html").Trim();
 
                 //var path = Path.Combine(Directory.GetCurrentDirectory(), "\\emailTemplate.html");
                 //string body = System.IO.File.ReadAllText(path);
                 //string format
-                body = body.Replace("&&Consumer", stepContext.Values["name"].ToString()).Replace("$$$PlaceHolder_for_Customs_msg","Custom msg goes here");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
+                //body = body.Replace("&&Consumer", stepContext.Values["name"].ToString()).Replace("$$$PlaceHolder_for_Customs_msg","Custom msg goes here");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
                 string links = string.Empty;
                 if (LinkUrlsList.Count>0)
                 {
