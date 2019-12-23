@@ -6,13 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="emailTemplate.html" />
+    <None Remove="emailTemplateNew.html" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="emailTemplate.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
+    <EmbeddedResource Include="emailTemplateNew.html" />
   </ItemGroup>
 
   <ItemGroup>

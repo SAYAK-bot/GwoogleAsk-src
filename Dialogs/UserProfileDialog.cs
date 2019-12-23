@@ -190,7 +190,7 @@ namespace EchoBot.Dialogs
                 const string fromPassword = "sayakSICK";
 
                 var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = "EchoBot.emailTemplate.html";
+                var resourceName = "EchoBot.emailTemplateNew.html";
                 string result;
                 using (Stream stream = assembly.GetManifestResourceStream(resourceName))
                 using (StreamReader reader = new StreamReader(stream))
