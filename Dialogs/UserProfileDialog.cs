@@ -61,7 +61,7 @@ namespace EchoBot.Dialogs
                     new PromptOptions
                     {
                         Prompt = MessageFactory.Text("Please enter domain of information."),
-                        Choices = ChoiceFactory.ToChoices(new List<string> { "Policy Center", "Claims Center", "Billing Center","Information Directory"}),
+                        Choices = ChoiceFactory.ToChoices(new List<string> { "Policy Center", "Claims Center", "Billing Center"}),
                     }, cancellationToken);
             }
             catch(Exception ex)
