@@ -1,6 +1,7 @@
-.vs/
+
 *.dll
 *.pdb
 obj/**
 bin/**
 runtimes/**
+/.vs/EchoBot/v16/Server/sqlite3/db.lock

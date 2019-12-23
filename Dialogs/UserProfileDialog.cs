@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Net.Mime;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.Luis;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Dialogs.Choices;
 using Microsoft.Bot.Connector;
@@ -15,12 +20,12 @@ namespace EchoBot.Dialogs
     public class UserProfileDialog : ComponentDialog
     {
         private readonly IStatePropertyAccessor<UserProfile> _userProfileAccessor;
-
-        public UserProfileDialog(UserState userState)
+        //private readonly LuisRecognizer _luisRecognizer;
+        public UserProfileDialog()
             : base(nameof(UserProfileDialog))
         {
-            _userProfileAccessor = userState.CreateProperty<UserProfile>("UserProfile");
-
+            //_userProfileAccessor = userState.CreateProperty<UserProfile>("UserProfile");
+            //_luisRecognizer = luisRecognizer;
             // This array defines how the Waterfall will execute.
             var waterfallSteps = new WaterfallStep[]
             {
@@ -60,7 +65,7 @@ namespace EchoBot.Dialogs
                     new PromptOptions
                     {
                         Prompt = MessageFactory.Text("Please enter domain of information."),
-                        Choices = ChoiceFactory.ToChoices(new List<string> { "Guidewire", "Java", "Python" }),
+                        Choices = ChoiceFactory.ToChoices(new List<string> { "Policy Center", "Claims Center", "Billing Center" }),
                     }, cancellationToken);
             }
             catch(Exception ex)
@@ -101,12 +106,13 @@ namespace EchoBot.Dialogs
             }
           }
 
-        private static async Task<DialogTurnResult> QuestionStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        private  async Task<DialogTurnResult> QuestionStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             try
             {
                 stepContext.Values["Question"] = ((String)stepContext.Result);
-
+               
+                //var luisResult = await _luisRecognizer.RecognizeAsync<RecognizerResult>(stepContext.Context, cancellationToken);
                 return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your mail id.") }, cancellationToken);
             }
             catch (Exception ex)
@@ -115,12 +121,14 @@ namespace EchoBot.Dialogs
             }
         }
 
-        private static async Task<DialogTurnResult> MailStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        private  async Task<DialogTurnResult> MailStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             try
             {
-                stepContext.Values["Mail"] = ((String)stepContext.Result); ;
-
+                
+                stepContext.Values["Mail"] = ((String)stepContext.Result);
+               var ListQuestions= findLinks(stepContext);
+                sendMail(stepContext,ListQuestions);
                 return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text($"Thank you {stepContext.Values["name"]} We will get back to you") }, cancellationToken);
             }
             catch (Exception ex)
@@ -128,143 +136,96 @@ namespace EchoBot.Dialogs
                 throw ex;
             }
           }
+        public static List<string> findLinks(WaterfallStepContext stepContext)
+        {
 
+            try
+            {
+                SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
+                builder.DataSource = "gwoogle.database.windows.net";
+                builder.UserID = "Sayak";
+                builder.Password = "jolu@ECE15";
+                builder.InitialCatalog = "linkDetails";
 
+                using (SqlConnection connection = new SqlConnection(builder.ConnectionString))
+                {
+                   
+                    connection.Open();
 
-        //private async Task<DialogTurnResult> AgeStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-        //{
-        //    if ((bool)stepContext.Result)
-        //    {
-        //        // User said "yes" so we will be prompting for the age.
-        //        // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-        //        var promptOptions = new PromptOptions
-        //        {
-        //            Prompt = MessageFactory.Text("Please enter your age."),
-        //            RetryPrompt = MessageFactory.Text("The value entered must be greater than 0 and less than 150."),
-        //        };
+                    List<Link> result = new List<Link>();
+                    List<string> questionsList = new List<string>();
+                    using (SqlCommand command = new SqlCommand("getLinks", connection))
+                    {
+                        command.CommandType = System.Data.CommandType.StoredProcedure;
+                        var dom = stepContext.Values["domain"].ToString().Substring(0, stepContext.Values["domain"].ToString().IndexOf(" "));
+                        command.Parameters.AddWithValue("@domain", dom);
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                //    Link lnk = new Link();
+                                //    lnk.LinkUrl = reader[0].ToString();
+                                //    lnk.LinkSubject= reader[1].ToString();
+                                //    lnk.LinkCategory = reader[2].ToString();
+                                //    result.Add(lnk);
+                                if (stepContext.Values["Question"].ToString().ToLower().Contains(reader[1].ToString().ToLower()))
+                                {
+                                    questionsList.Add(reader[0].ToString());
+                                }
+                            }
+                        }
+                      return questionsList;
+                    }
+                }
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine(e.ToString());
+                return null;
+            }
+        }
+    
+        public static void sendMail(WaterfallStepContext stepContext,List<string> LinkUrlsList)
+        {
+            try
+            {
 
-        //        return await stepContext.PromptAsync(nameof(NumberPrompt<int>), promptOptions, cancellationToken);
-        //    }
-        //    else
-        //    {
-        //        // User said "no" so we will skip the next step. Give -1 as the age.
-        //        return await stepContext.NextAsync(-1, cancellationToken);
-        //    }
-        //}
+                MailAddress fromAddress = new MailAddress("sayak.biswas@hotmail.com", "Gwoogle");
+                MailAddress toAddress = new MailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
+                const string fromPassword = "sayakSICK";
+                string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html");
+                //string format
+                body = body.Replace("&&Customer", stepContext.Values["name"].ToString()).Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).Replace("&&Lorem", LinkUrlsList[0].ToString());
+                const string subject = "Reply from Gwoogle";//email subject
+                SmtpClient smtpClient = new SmtpClient()
+                {
+                    Host = "smtp.live.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
+                };
+                using (MailMessage msg = new MailMessage(fromAddress, toAddress)
+                {
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                })
+                {
+                    smtpClient.Send(msg);
+                    msg.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess;
+                    if ((int)msg.DeliveryNotificationOptions == 1)//deliver success notification
+                    {
+                        // TempData["code"] = g.ToString();
+                    }
 
-        //private static async Task<DialogTurnResult> PictureStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-        //{
-        //    stepContext.Values["age"] = (int)stepContext.Result;
-
-        //    var msg = (int)stepContext.Values["age"] == -1 ? "No age given." : $"I have your age as {stepContext.Values["age"]}.";
-
-        //    // We can send messages to the user at any point in the WaterfallStep.
-        //    await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken);
-
-        //    if (stepContext.Context.Activity.ChannelId == Channels.Msteams)
-        //    {
-        //        // This attachment prompt example is not designed to work for Teams attachments, so skip it in this case
-        //        await stepContext.Context.SendActivityAsync(MessageFactory.Text("Skipping attachment prompt in Teams channel..."), cancellationToken);
-        //        return await stepContext.NextAsync(null, cancellationToken);
-        //    }
-        //    else
-        //    {
-        //        // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-        //        var promptOptions = new PromptOptions
-        //        {
-        //            Prompt = MessageFactory.Text("Please attach a profile picture (or type any message to skip)."),
-        //            RetryPrompt = MessageFactory.Text("The attachment must be a jpeg/png image file."),
-        //        };
-
-        //        return await stepContext.PromptAsync(nameof(AttachmentPrompt), promptOptions, cancellationToken);
-        //    }
-        //}
-
-        //private async Task<DialogTurnResult> ConfirmStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-        //{
-        //    stepContext.Values["picture"] = ((IList<Attachment>)stepContext.Result)?.FirstOrDefault();
-
-        //    // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-        //    return await stepContext.PromptAsync(nameof(ConfirmPrompt), new PromptOptions { Prompt = MessageFactory.Text("Is this ok?") }, cancellationToken);
-        //}
-
-        //private async Task<DialogTurnResult> SummaryStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-        //{
-        //    if ((bool)stepContext.Result)
-        //    {
-        //        // Get the current profile object from user state.
-        //        var userProfile = await _userProfileAccessor.GetAsync(stepContext.Context, () => new UserProfile(), cancellationToken);
-
-        //        userProfile.Transport = (string)stepContext.Values["transport"];
-        //        userProfile.Name = (string)stepContext.Values["name"];
-        //        userProfile.Age = (int)stepContext.Values["age"];
-        //        userProfile.Picture = (Attachment)stepContext.Values["picture"];
-
-        //        var msg = $"I have your mode of transport as {userProfile.Transport} and your name as {userProfile.Name}";
-
-        //        if (userProfile.Age != -1)
-        //        {
-        //            msg += $" and your age as {userProfile.Age}";
-        //        }
-
-        //        msg += ".";
-
-        //        await stepContext.Context.SendActivityAsync(MessageFactory.Text(msg), cancellationToken);
-
-        //        if (userProfile.Picture != null)
-        //        {
-        //            try
-        //            {
-        //                await stepContext.Context.SendActivityAsync(MessageFactory.Attachment(userProfile.Picture, "This is your profile picture."), cancellationToken);
-        //            }
-        //            catch
-        //            {
-        //                await stepContext.Context.SendActivityAsync(MessageFactory.Text("A profile picture was saved but could not be displayed here."), cancellationToken);
-        //            }
-        //        }
-        //    }
-        //    else
-        //    {
-        //        await stepContext.Context.SendActivityAsync(MessageFactory.Text("Thanks. Your profile will not be kept."), cancellationToken);
-        //    }
-
-        //    // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is the end.
-        //    return await stepContext.EndDialogAsync(cancellationToken: cancellationToken);
-        //}
-
-        //private static Task<bool> AgePromptValidatorAsync(PromptValidatorContext<int> promptContext, CancellationToken cancellationToken)
-        //{
-        //    // This condition is our validation rule. You can also change the value at this point.
-        //    return Task.FromResult(promptContext.Recognized.Succeeded && promptContext.Recognized.Value > 0 && promptContext.Recognized.Value < 150);
-        //}
-
-        //private static async Task<bool> PicturePromptValidatorAsync(PromptValidatorContext<IList<Attachment>> promptContext, CancellationToken cancellationToken)
-        //{
-        //    if (promptContext.Recognized.Succeeded)
-        //    {
-        //        var attachments = promptContext.Recognized.Value;
-        //        var validImages = new List<Attachment>();
-
-        //        foreach (var attachment in attachments)
-        //        {
-        //            if (attachment.ContentType == "image/jpeg" || attachment.ContentType == "image/png")
-        //            {
-        //                validImages.Add(attachment);
-        //            }
-        //        }
-
-        //        promptContext.Recognized.Value = validImages;
-
-        //        // If none of the attachments are valid images, the retry prompt should be sent.
-        //        return validImages.Any();
-        //    }
-        //    else
-        //    {
-        //        await promptContext.Context.SendActivityAsync("No attachments received. Proceeding without a profile picture...");
-
-        //        // We can return true from a validator function even if Recognized.Succeeded is false.
-        //        return true;
-        //    }
-        //}
+                }
+            }
+            catch(Exception ex){
+                throw ex;
+            }
+        }
+      
     }
 }

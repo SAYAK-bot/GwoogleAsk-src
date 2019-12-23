@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Bot.Builder.EchoBot;
 using EchoBot.Dialogs;
 using Microsoft.BotBuilderSamples.Bots;
+using EchoBot;
+using Microsoft.Bot.Builder.AI.Luis;
 
 namespace Microsoft.BotBuilderSamples
 {
@@ -49,6 +51,24 @@ namespace Microsoft.BotBuilderSamples
 
             // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
             services.AddTransient<IBot, EchoBot<UserProfileDialog>>();
+
+//            services.AddSingleton(sp =>
+//            {
+//                // Get LUIS information
+//                var luisApp = new LuisApplication("2434c13d-e2c6-48ba-ac06-ac6ee930ff79", "4484eb67e5d44da2a847f8f12fbd97cf", "
+//https://westus.api.cognitive.microsoft.com/luis/api/v2.0");
+
+//                // Specify LUIS options. These may vary for your bot.
+//                var luisPredictionOptions = new LuisPredictionOptions
+//                {
+//                    IncludeAllIntents = true,
+//                };
+
+//                // Create the recognizer
+//                var recognizer = new Bot.Builder.AI.Luis.LuisRecognizer(luisApp, luisPredictionOptions, true, null);
+//                return recognizer;
+//            });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
