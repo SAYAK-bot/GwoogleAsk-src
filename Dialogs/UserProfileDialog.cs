@@ -10,6 +10,13 @@ using System.Net.Mail;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using SendGrid;
+
+using SendGrid.Helpers.Mail;
+
+using System;
+
+using System.Threading.Tasks;
 namespace EchoBot.Dialogs
 {
 
@@ -25,9 +32,9 @@ namespace EchoBot.Dialogs
             // This array defines how the Waterfall will execute.
             var waterfallSteps = new WaterfallStep[]
             {
-                DomainStepAsync,
                 NameStepAsync,
                 NameConfirmStepAsync,
+                DomainStepAsync,
                 QuestionStepAsync,
                 MailStepAsync,
                 //AgeStepAsync,
@@ -38,8 +45,8 @@ namespace EchoBot.Dialogs
 
             // Add named dialogs to the DialogSet. These names are saved in the dialog state.
             AddDialog(new WaterfallDialog(nameof(WaterfallDialog), waterfallSteps));
-            AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
+            AddDialog(new ChoicePrompt(nameof(ChoicePrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
             AddDialog(new TextPrompt(nameof(TextPrompt)));
             //AddDialog(new NumberPrompt<int>(nameof(NumberPrompt<int>), AgePromptValidatorAsync));
@@ -51,32 +58,15 @@ namespace EchoBot.Dialogs
             InitialDialogId = nameof(WaterfallDialog);
         }
 
-        private static async Task<DialogTurnResult> DomainStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
-        {
-            try
-            {
-                // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-                // Running a prompt here means the next WaterfallStep will be run when the user's response is received.
-                return await stepContext.PromptAsync(nameof(ChoicePrompt),
-                    new PromptOptions
-                    {
-                        Prompt = MessageFactory.Text("Please enter domain of information."),
-                        Choices = ChoiceFactory.ToChoices(new List<string> { "Policy Center", "Claims Center", "Billing Center"}),
-                    }, cancellationToken);
-            }
-            catch(Exception ex)
-            {
-                throw ex;
-            }
-        }
 
         private static async Task<DialogTurnResult> NameStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             try
             {
-                stepContext.Values["domain"] = ((FoundChoice)stepContext.Result).Value;
+               // await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Hi Welcome To Gwoogle.."), cancellationToken);
+                
 
-                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your name.") }, cancellationToken);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Could you help me with your name please??") }, cancellationToken);
             }
             catch(Exception ex)
             {
@@ -92,24 +82,45 @@ namespace EchoBot.Dialogs
 
                 // We can send messages to the user at any point in the WaterfallStep.
                 await stepContext.Context.SendActivityAsync(MessageFactory.Text($"Thanks {stepContext.Result}."), cancellationToken);
-
+                return await stepContext.PromptAsync(nameof(ChoicePrompt),
+                   new PromptOptions
+                   {
+                       Prompt = MessageFactory.Text("Please Select Domain Of Information You Are Looking For."),
+                       Choices = ChoiceFactory.ToChoices(new List<string> { "Policy Center", "Claims Center", "Billing Center" }),
+                   }, cancellationToken);
                 // WaterfallStep always finishes with the end of the Waterfall or with another dialog; here it is a Prompt Dialog.
-                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("What information are you looking for?") }, cancellationToken);
+               
             }
             catch (Exception ex)
             {
                 throw ex;
             }
-          }
+        }
 
+        private static async Task<DialogTurnResult> DomainStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        {
+            try
+            {
+                stepContext.Values["domain"] = ((FoundChoice)stepContext.Result).Value;
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("What Information Are You Looking For?") }, cancellationToken);
+
+
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         private  async Task<DialogTurnResult> QuestionStepAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             try
             {
+
                 stepContext.Values["Question"] = ((String)stepContext.Result);
                
                 //var luisResult = await _luisRecognizer.RecognizeAsync<RecognizerResult>(stepContext.Context, cancellationToken);
-                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Please enter your mail id.") }, cancellationToken);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text("Can You Please Help With our Email Address?") }, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -124,8 +135,8 @@ namespace EchoBot.Dialogs
                 
                 stepContext.Values["Mail"] = ((String)stepContext.Result);
                var ListQuestions= findLinks(stepContext);
-                sendMail(stepContext,ListQuestions);
-                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text($"Thank you {stepContext.Values["name"]} We will get back to you") }, cancellationToken);
+              string success =  SendMail(stepContext,ListQuestions);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = MessageFactory.Text($"Thank you {stepContext.Values["name"]} "+success) }, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -134,7 +145,6 @@ namespace EchoBot.Dialogs
           }
         public static List<string> findLinks(WaterfallStepContext stepContext)
         {
-
             try
             {
                 SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
@@ -180,48 +190,89 @@ namespace EchoBot.Dialogs
                 return null;
             }
         }
-    
-        public static void sendMail(WaterfallStepContext stepContext,List<string> LinkUrlsList)
+
+        //static async Task SendMail(WaterfallStepContext stepContext, List<string> LinkUrlsList)
+        //{
+        //    string links = string.Empty;
+        //    if (LinkUrlsList.Count > 0)
+        //    {
+        //        links = "<ul>";
+
+        //        foreach (var item in LinkUrlsList)
+        //        {
+        //            links = links + "<li>" + "<a href=" + item + ">" + item + "</a>" + "</li>";
+        //        }
+        //        links += "</ul>";
+        //    }
+        //    else
+        //    {
+        //        links = "sorry no relevant links foun";
+        //    }
+
+
+        //    //var apiKey = Environment.GetEnvironmentVariable("NAME_OF_THE_ENVIRONMENT_VARIABLE_FOR_YOUR_SENDGRID_KEY");
+
+        //    var client = new SendGridClient("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");
+
+        //    var from = new EmailAddress("askgwoogle@outlook.com", "Gwoogle");
+
+        //    var subject = "Reply from Gwoogle";
+
+        //    var to = new EmailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
+
+        //    var plainTextContent = links;
+
+        //    var htmlContent = "<strong>and easy to do anywhere, even with C#</strong>";
+
+        //    var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+
+        //    var response = await client.SendEmailAsync(msg);
+
+        //}
+        public static string SendMail(WaterfallStepContext stepContext, List<string> LinkUrlsList)
         {
             try
             {
-                MailAddress fromAddress = new MailAddress("sayak.biswas@hotmail.com", "Gwoogle");
+                MailAddress fromAddress = new MailAddress("askgwoogle@outlook.com", "Gwoogle");
                 MailAddress toAddress = new MailAddress(stepContext.Values["Mail"].ToString(), stepContext.Values["name"].ToString());
-                const string fromPassword = "sayakSICK";
+                const string fromPassword = "jolu@ECE15";
 
-                //var assembly = Assembly.GetExecutingAssembly();
-                //var resourceName = "EchoBot.emailTemplateNew.html";
-                //string result;
-                //using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-                //using (StreamReader reader = new StreamReader(stream))
-                //{
-                //     result = reader.ReadToEnd();
-                //}
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = "EchoBot.emailTemplateNew.html";
+                string result;
+                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    result = reader.ReadToEnd();
+                }
 
-               // string path = Path.Combine(, "emailTemplate.html");
-                string body = "test";
-                //string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html").Trim();
+                // string path = Path.Combine(, "emailTemplate.html");
+                string body = result;
+                // string body = System.IO.File.ReadAllText(@"C:\Users\SayAk\Downloads\GwoogleAsk-src\emailTemplate.html").Trim();
 
                 //var path = Path.Combine(Directory.GetCurrentDirectory(), "\\emailTemplate.html");
                 //string body = System.IO.File.ReadAllText(path);
                 //string format
-                //body = body.Replace("&&Consumer", stepContext.Values["name"].ToString()).Replace("$$$PlaceHolder_for_Customs_msg","Custom msg goes here");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
+                body = body.Replace("&&Consumer", stepContext.Values["name"].ToString());
+                    //.Replace("$$$PlaceHolder_for_Customs_msg", "We have recieved your query and please find the result below.");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
                 string links = string.Empty;
-                if (LinkUrlsList.Count>0)
+                if (LinkUrlsList==null)
+                {
+
+                    links = "Sorry no relevant links found";
+                }
+               else if (LinkUrlsList.Count > 0)
                 {
                     links = "<ul>";
 
                     foreach (var item in LinkUrlsList)
                     {
-                        links = links+"<li>"+ "<a href="+item+">" + item + "</a>"+"</li>";
+                        links = links + "<li>" + "<a href=" + item + ">" + item + "</a>" + "</li>";
                     }
                     links += "</ul>";
                 }
-                else
-                {
-                    links = "sorry no relevant links foun";
-                }
-                body = body.Replace("&&Lorem",links);
+             
+                body = body.Replace("&&Lorem", links);
                 const string subject = "Reply from Gwoogle";//email subject
                 SmtpClient smtpClient = new SmtpClient()
                 {
@@ -243,15 +294,17 @@ namespace EchoBot.Dialogs
                     msg.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess;
                     if ((int)msg.DeliveryNotificationOptions == 1)//deliver success notification
                     {
-                        // TempData["code"] = g.ToString();
+                        return "We just Sent You An Email. Please Check Your Inbox.";
                     }
-
+                    else
+                        return "The Is Some Issue With The Email, Please Try Again";
                 }
             }
-            catch(Exception ex){
+            catch (Exception ex)
+            {
                 throw ex;
             }
         }
-      
+
     }
 }

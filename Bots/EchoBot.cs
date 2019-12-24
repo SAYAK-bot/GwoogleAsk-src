@@ -34,6 +34,19 @@ namespace Microsoft.BotBuilderSamples.Bots
             // Save any state changes that might have occured during the turn.
             await ConversationState.SaveChangesAsync(turnContext, false, cancellationToken);
             await UserState.SaveChangesAsync(turnContext, false, cancellationToken);
+
+        }
+
+        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
+        {
+            foreach (var member in membersAdded)
+            {
+                if (member.Id != turnContext.Activity.Recipient.Id)
+                {
+                    await turnContext.SendActivityAsync($"Hi There - Welcome To Gwoogle", cancellationToken: cancellationToken);
+                   
+                }
+            }
         }
 
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
