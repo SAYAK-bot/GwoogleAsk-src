@@ -253,7 +253,7 @@ namespace EchoBot.Dialogs
                 //var path = Path.Combine(Directory.GetCurrentDirectory(), "\\emailTemplate.html");
                 //string body = System.IO.File.ReadAllText(path);
                 //string format
-                body = body.Replace("&&Consumer", stepContext.Values["name"].ToString());
+                body = body.Replace("&&Consumer", stepContext.Values["name"].ToString()).Replace("$$$PlaceHolder_for_Customs_msg", "We have recieved your query and please find the result below.");
                     //.Replace("$$$PlaceHolder_for_Customs_msg", "We have recieved your query and please find the result below.");//./*Replace("&sample@email.com", stepContext.Values["Mail"].ToString()).*/Replace("&&Lorem", LinkUrlsList[0].ToString());
                 string links = string.Empty;
                 if (LinkUrlsList==null)
